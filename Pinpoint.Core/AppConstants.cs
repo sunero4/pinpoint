@@ -9,6 +9,7 @@ namespace Pinpoint.Core
 
         public static readonly string MainDirectory = UserHome + Path.DirectorySeparatorChar + "Pinpoint" + Path.DirectorySeparatorChar;
         public static readonly string SettingsFilePath = MainDirectory + "settings.json";
+        public static readonly string PluginFolderPath = MainDirectory + "/plugins";
         public static readonly string HotkeyIdentifier = "Show/Hide";
 
         public const string Version = "0.0.7";

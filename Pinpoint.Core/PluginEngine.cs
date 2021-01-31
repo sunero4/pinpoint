@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,6 +18,9 @@ namespace Pinpoint.Core
         public void AddPlugin(IPlugin plugin)
         {
             var prevSettings = AppSettings.GetListAs<PluginMeta>("plugins");
+
+            var pluginLoader = new PluginLoader();
+            var x = pluginLoader.GetAvailablePlugins();
 
             if (!Plugins.Contains(plugin))
             {
@@ -71,5 +77,39 @@ namespace Pinpoint.Core
                 }
             }
         }
+    }
+
+    public class PluginLoader
+    {
+        public IEnumerable<IPlugin> GetAvailablePlugins()
+        {
+            EnsurePluginDirectoryExists();
+
+            foreach (var filePath in Directory.EnumerateFiles(AppConstants.PluginFolderPath))
+            {
+                if (!filePath.EndsWith(".dll")) continue;
+
+                var assembly = Assembly.LoadFrom(filePath);
+
+                var pluginType = assembly.ExportedTypes.FirstOrDefault(t => typeof(IPlugin).IsAssignableFrom(t));
+
+                if(pluginType == null) continue;
+
+                var plugin = (IPlugin) Activator.CreateInstance(pluginType);
+
+                yield return plugin;
+            }
+        }
+
+        private static void EnsurePluginDirectoryExists()
+        {
+            var exists = Directory.Exists(AppConstants.PluginFolderPath);
+
+            if (!exists)
+            {
+                Directory.CreateDirectory(AppConstants.PluginFolderPath);
+            }
+        }
+
     }
 }

@@ -23,6 +23,7 @@ using Pinpoint.Plugin.Dictionary;
 using Pinpoint.Plugin.EncodeDecode;
 using Pinpoint.Plugin.Finance;
 using Pinpoint.Plugin.HackerNews;
+using Pinpoint.Plugin.Lists;
 using Pinpoint.Plugin.MetricConverter;
 using Pinpoint.Win.Models;
 using PinPoint.Plugin.Spotify;
@@ -79,6 +80,7 @@ namespace Pinpoint.Win.View
             _pluginEngine.AddPlugin(new FinancePlugin());
             _pluginEngine.AddPlugin(new HackerNewsPlugin());
             _pluginEngine.AddPlugin(new BookmarksPlugin());
+            _pluginEngine.AddPlugin(new ListsPlugin());
         }
 
         internal MainWindowModel Model

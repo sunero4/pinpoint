@@ -31,7 +31,7 @@ namespace Pinpoint.Plugin.Docker
 
         public async IAsyncEnumerable<AbstractQueryResult> Process(Query query)
         {
-
+            var queryParts = query.RawQuery.Split(' ');
             if (query.RawQuery == "docker ps")
             {
                 await foreach (var containerResult in ListContainers())
@@ -42,7 +42,7 @@ namespace Pinpoint.Plugin.Docker
 
             if (query.RawQuery == "docker images")
             {
-                await foreach (var imageResult in ListImages())
+                await foreach (var imageResult in ListLocalImages())
                 {
                     yield return imageResult;
                 }
@@ -50,7 +50,6 @@ namespace Pinpoint.Plugin.Docker
 
             if (query.RawQuery.StartsWith("docker run"))
             {
-                var queryParts = query.RawQuery.Split(' ');
 
                 var portMappings = new List<string>();
 
@@ -61,30 +60,69 @@ namespace Pinpoint.Plugin.Docker
                     portMappings.AddRange(portsToMap);
                 }
 
-                await foreach (var runnableImageResult in ListImagesRunnable(portMappings))
+                await foreach (var runnableImageResult in ListLocalImagesRunnable(portMappings))
                 {
                     yield return runnableImageResult;
                 }
             }
+
+            if (query.RawQuery.StartsWith("docker search"))
+            {
+                if (queryParts.Length <= 2) yield break;
+
+                var searchTerm = queryParts[2];
+
+                await foreach (var imageResult in ListDockerHubImages(searchTerm))
+                {
+                    yield return imageResult;
+                }
+            }
         }
 
-        private async IAsyncEnumerable<AbstractQueryResult> ListImagesRunnable(IReadOnlyList<string> portMappings)
+        private async IAsyncEnumerable<AbstractQueryResult> ListDockerHubImages(string searchTerm)
+        {
+            var images = await _dockerClient.Images.SearchImagesAsync(new ImagesSearchParameters
+            {
+                Term = searchTerm
+            });
+
+            foreach (var image in images)
+            {
+                yield return new DockerImageResult(image.Name);
+            }
+        }
+
+        private async IAsyncEnumerable<AbstractQueryResult> ListDockerHubImagesRunnable(string searchTerm,
+            IReadOnlyList<string> portMappings)
+        {
+            var images = await _dockerClient.Images.SearchImagesAsync(new ImagesSearchParameters
+            {
+                Term = searchTerm
+            });
+
+            foreach (var image in images)
+            {
+                yield return new RunnableDockerImageResult(image.Name, "", portMappings);
+            }
+        }
+
+        private async IAsyncEnumerable<AbstractQueryResult> ListLocalImages()
+        {
+            var images = await _dockerClient.Images.ListImagesAsync(new ImagesListParameters());
+            foreach (var image in images)
+            {
+                var displayName = image.RepoTags != null && image.RepoTags.Count > 0 ? image.RepoTags[0] : image.ID;
+                yield return new DockerImageResult(displayName);
+            }
+        }
+
+        private async IAsyncEnumerable<AbstractQueryResult> ListLocalImagesRunnable(IReadOnlyList<string> portMappings)
         {
             var images = await _dockerClient.Images.ListImagesAsync(new ImagesListParameters());
             foreach (var image in images)
             {
                 var displayName = image.RepoTags != null && image.RepoTags.Count > 0 ? image.RepoTags[0] : image.ID;
                 yield return new RunnableDockerImageResult(displayName, image.ID, portMappings);
-            }
-        }
-
-        private async IAsyncEnumerable<AbstractQueryResult> ListImages()
-        {
-            var images = await _dockerClient.Images.ListImagesAsync(new ImagesListParameters());
-            foreach (var image in images)
-            {
-                var displayName = image.RepoTags != null && image.RepoTags.Count > 0 ? image.RepoTags[0] : image.ID;
-                yield return new DockerImageResult(displayName, image.ID);
             }
         }
 
@@ -116,10 +154,12 @@ namespace Pinpoint.Plugin.Docker
 
     public class RunnableDockerImageResult: DockerImageResult
     {
+        private readonly string _imageId;
         private readonly IReadOnlyList<string> _portBindings;
 
-        public RunnableDockerImageResult(string imageName, string imageId, IReadOnlyList<string> portBindings) : base(imageName, imageId)
+        public RunnableDockerImageResult(string imageName, string imageId, IReadOnlyList<string> portBindings) : base(imageName)
         {
+            _imageId = imageId;
             _portBindings = portBindings;
         }
 
@@ -142,7 +182,7 @@ namespace Pinpoint.Plugin.Docker
 
             client.Containers.CreateContainerAsync(new CreateContainerParameters
             {
-                Image = ImageId,
+                Image = _imageId,
                 HostConfig = new HostConfig
                 {
                     PortBindings = new Dictionary<string, IList<PortBinding>>(portBindings)
@@ -158,11 +198,7 @@ namespace Pinpoint.Plugin.Docker
 
     public class DockerImageResult: AbstractFontAwesomeQueryResult
     {
-        protected readonly string ImageId;
-        public DockerImageResult(string imageName, string imageId): base(imageName)
-        {
-            ImageId = imageId;
-        }
+        public DockerImageResult(string imageName): base(imageName) { }
         public override void OnSelect()
         {
         }

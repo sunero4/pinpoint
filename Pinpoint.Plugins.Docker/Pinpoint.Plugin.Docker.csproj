@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>Pinpoint.Plugin.Docker</AssemblyName>
+    <RootNamespace>Pinpoint.Plugin.Docker</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Docker.DotNet" Version="3.125.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pinpoint.Core\Pinpoint.Core.csproj" />
+  </ItemGroup>
+
+</Project>

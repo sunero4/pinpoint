@@ -20,6 +20,7 @@ using Pinpoint.Plugin.Calculator;
 using Pinpoint.Plugin.CommandLine;
 using Pinpoint.Plugin.ControlPanel;
 using Pinpoint.Plugin.Dictionary;
+using Pinpoint.Plugin.Docker;
 using Pinpoint.Plugin.EncodeDecode;
 using Pinpoint.Plugin.Finance;
 using Pinpoint.Plugin.HackerNews;
@@ -79,6 +80,7 @@ namespace Pinpoint.Win.View
             _pluginEngine.AddPlugin(new FinancePlugin());
             _pluginEngine.AddPlugin(new HackerNewsPlugin());
             _pluginEngine.AddPlugin(new BookmarksPlugin());
+            _pluginEngine.AddPlugin(new DockerPlugin());
         }
 
         internal MainWindowModel Model
